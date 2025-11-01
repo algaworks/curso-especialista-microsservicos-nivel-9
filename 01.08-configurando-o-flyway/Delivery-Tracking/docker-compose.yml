@@ -1,0 +1,27 @@
+services:
+
+  postgres:
+    extends:
+      file: ../docker-compose.yml
+      service: postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - delivery-network
+
+  kafka:
+    extends:
+      file: ../docker-compose.yml
+      service: kafka
+    ports:
+      - "9092:9092"
+    networks:
+      - delivery-network
+
+networks:
+  delivery-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  kafka-data:

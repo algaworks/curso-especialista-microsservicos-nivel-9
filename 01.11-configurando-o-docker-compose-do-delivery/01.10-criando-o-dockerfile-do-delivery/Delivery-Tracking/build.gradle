@@ -1,0 +1,64 @@
+plugins {
+    id 'java'
+    id 'idea'
+    id 'org.springframework.boot' version '3.5.5'
+    id 'io.spring.dependency-management' version '1.1.6'
+}
+
+group = 'com.algaworks.algadelivery'
+version = '0.0.1-SNAPSHOT'
+description = 'Delivery-Tracking'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+compileJava {
+    options.encoding = 'UTF-8'
+    options.compilerArgs += ['-parameters']
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+ext {
+    set('springCloudVersion', '2025.0.0')
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.kafka:spring-kafka'
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
+    implementation 'io.github.resilience4j:resilience4j-spring-boot3'
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+    implementation 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    implementation 'org.flywaydb:flyway-core'
+    runtimeOnly 'org.postgresql:postgresql'
+    runtimeOnly 'org.flywaydb:flyway-database-postgresql'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+    }
+}
+
+bootJar {
+    archiveFileName = 'delivery-tracking.jar'
+}

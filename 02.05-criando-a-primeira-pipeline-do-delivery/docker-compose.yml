@@ -20,7 +20,6 @@ services:
       - pgadmin-data:/var/lib/pgadmin
     networks:
       - local-network
-
   kafka:
     image: apache/kafka:3.8.1
     environment:

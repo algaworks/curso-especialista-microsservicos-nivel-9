@@ -1,0 +1,35 @@
+
+stages:
+  - test
+  - build
+  - verify
+
+image: alpine:latest
+
+test-job:
+  stage: test
+  before_script:
+    - mkdir -p output
+  script:
+    - echo "Executando os testes em $(date)" > output/test.txt
+  artifacts:
+    paths:
+      - output/
+    expire_in: 15 minutes
+    
+build-job:
+  stage: build
+  script:
+    - echo "Executando os build em $(date)" > output/build.txt
+  artifacts:
+    paths:
+      - output/
+    expire_in: 15 minutes
+
+analyze-results:
+  stage: verify
+  script: |
+     echo "Verificando artefatos"
+     ls -la output
+     cat output/test.txt
+     cat output/build.txt

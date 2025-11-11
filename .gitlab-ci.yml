@@ -1,0 +1,10 @@
+variables:
+  TESTE: "Hello, World!"
+
+build-job:
+  script:
+    - echo $TESTE
+
+test-job1:
+  script:
+    - echo "This job tests something

@@ -1,0 +1,65 @@
+
+stages:
+  - test
+  - build
+  - verify
+
+image: alpine:latest
+
+test-job:
+  stage: test
+  rules:
+    - if: $CI_COMMIT_BRANCH =~ /^(main|develop)$/ && $CI_PIPELINE_SOURCE == "push"
+  before_script:
+    - mkdir -p output
+    - env
+  script:
+    - echo "Executando os testes em $(date)" > output/test.txt
+  artifacts:
+    paths:
+      - output/
+    expire_in: 15 minutes
+
+test-web-job:
+  stage: test
+  rules:
+    - if: $CI_COMMIT_BRANCH =~ /^(main|develop)$/ && $CI_PIPELINE_SOURCE == "web"
+      when: never
+    - if: $CI_COMMIT_BRANCH == "develop" && $CI_PIPELINE_SOURCE == "web"
+      when: manual
+    - if:  $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop"
+      when: always
+  before_script:
+    - mkdir -p output
+    - env
+  script:
+    - echo "Executando os testes em $(date)" > output/test.txt
+  artifacts:
+    paths:
+      - output/
+    expire_in: 15 minutes
+    
+build-job:
+  stage: build
+  rules:
+  - if: $CI_COMMIT_BRANCH =~ /^(main|develop)$/ && $CI_PIPELINE_SOURCE == "push"
+  before_script:
+    - env
+  script:
+    - echo "Executando os build em $(date)" > output/build.txt
+  artifacts:
+    paths:
+      - output/
+    expire_in: 15 minutes
+
+analyze-results:
+  stage: verify
+  rules:
+  - if: $CI_COMMIT_BRANCH =~ /^(main|develop)$/ && $CI_PIPELINE_SOURCE == "push"
+  before_script:
+    - env
+  script: |
+     echo "Verificando artefatos"
+     ls -la output
+     cat output/test.txt
+     cat output/build.txt

@@ -1,0 +1,31 @@
+stages:
+- test
+- build
+variables:
+  APP_NAME: ems-pipeline
+image: alpine:latest
+test-job:
+  stage: test
+  script:
+  - echo "Simulando um test"
+  - echo "Testando app $APP_NAME"
+  - cat /etc/os-release
+test2-job:
+  stage: test
+  variables:
+    ENV: dev
+    APP_NAME: ems-pipeline-2
+  script:
+  - echo "simulando um test2"
+  - echo "Testando app $APP_NAME no ambiente de $ENV"
+  - cat /etc/os-release
+build-job:
+  stage: build
+  image: node:latest
+  variables:
+    APP_NAME: ems-pipeline-3
+  script:
+  - echo "Simulando um build"
+  - echo "Realizando o build do app $APP_NAME"
+  - cat /etc/os-release
+  - node -v

@@ -15,8 +15,6 @@ import org.springframework.data.web.PagedModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-
-import java.util.Random;
 import java.util.UUID;
 
 @RestController
@@ -36,7 +34,7 @@ public class DeliveryController {
     }
 
     @PutMapping("/{deliveryId}")
-    public Delivery edit(@PathVariable UUID deliveryId,
+    public Delivery edit(@PathVariable("deliveryId") UUID deliveryId,
             @RequestBody @Valid DeliveryInput input) {
         return deliveryPreparationService.edit(deliveryId, input);
     }
@@ -44,33 +42,28 @@ public class DeliveryController {
     @SneakyThrows
     @GetMapping
     public PagedModel<Delivery> findAll(@PageableDefault Pageable pageable) {
-        if (Math.random() < 0.7) {
-            throw new RuntimeException();
-        }
-        int millis = new Random().nextInt(400);
-        Thread.sleep(millis);
         return new PagedModel<>(deliveryRepository.findAll(pageable));
     }
 
     @GetMapping("/{deliveryId}")
-    public Delivery findById(@PathVariable UUID deliveryId) {
+    public Delivery findById(@PathVariable("deliveryId") UUID deliveryId) {
         return deliveryRepository.findById(deliveryId)
                 .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
     @PostMapping("/{deliveryId}/placement")
-    public void place(@PathVariable UUID deliveryId) {
+    public void place(@PathVariable("deliveryId") UUID deliveryId) {
         deliveryCheckpointService.place(deliveryId);
     }
 
     @PostMapping("/{deliveryId}/pickups")
-    public void pickup(@PathVariable UUID deliveryId,
+    public void pickup(@PathVariable("deliveryId") UUID deliveryId,
                        @Valid @RequestBody CourierIdInput input) {
         deliveryCheckpointService.pickUp(deliveryId, input.getCourierId());
     }
 
     @PostMapping("/{deliveryId}/completion")
-    public void complete(@PathVariable UUID deliveryId) {
+    public void complete(@PathVariable("deliveryId") UUID deliveryId) {
         deliveryCheckpointService.complete(deliveryId);
     }
 

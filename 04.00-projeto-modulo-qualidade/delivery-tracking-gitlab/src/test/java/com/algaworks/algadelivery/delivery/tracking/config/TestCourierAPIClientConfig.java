@@ -1,9 +1,9 @@
-package com.algaworks.algadelivery.delivery.tracking.infrastructure.http.client;
+package com.algaworks.algadelivery.delivery.tracking.config;
 
+import com.algaworks.algadelivery.delivery.tracking.infrastructure.http.client.CourierAPIClient;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cloud.client.loadbalancer.LoadBalanced;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -13,22 +13,17 @@ import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 
 import java.time.Duration;
 
-@Configuration
-@Profile("!test")
-public class CourierAPIClientConfig {
+@TestConfiguration
+@Profile("test")
+public class TestCourierAPIClientConfig {
 
-    @Value("${courier-management.url:http://courier-management}")
+    @Value("${courier-management.url:http://localhost:8782}")
     private String courierManagementUrl;
 
     @Bean
-    @LoadBalanced
-    public RestClient.Builder loadBalacendRestClientBuilder() {
-        return RestClient.builder();
-    }
-
-    @Bean
-    public CourierAPIClient courierAPIClient(RestClient.Builder builder) {
-        RestClient restClient = builder.baseUrl(courierManagementUrl)
+    public CourierAPIClient courierAPIClient() {
+        RestClient restClient = RestClient.builder()
+                .baseUrl(courierManagementUrl)
                 .requestFactory(generateClientRequestFactory())
                 .build();
         RestClientAdapter adapter = RestClientAdapter.create(restClient);

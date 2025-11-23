@@ -241,6 +241,33 @@ class DeliveryControllerIT extends AbstractPresentationIT {
                 .statusCode(HttpStatus.BAD_REQUEST.value());
     }
 
+    @Test
+    void shouldFindAllDeliveries() {
+        Delivery delivery1 = DeliveryTestDataBuilder.aDelivery()
+                .status(DeliveryStatus.DRAFT)
+                .withItems(true)
+                .withPreparationDetails(true)
+                .build();
+        Delivery delivery2 = DeliveryTestDataBuilder.aDelivery()
+                .status(DeliveryStatus.WAITING_FOR_COURIER)
+                .withItems(true)
+                .withPreparationDetails(true)
+                .build();
+        deliveryRepository.saveAndFlush(delivery1);
+        deliveryRepository.saveAndFlush(delivery2);
+
+        RestAssured
+            .given()
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+            .when()
+                .get("/api/v1/deliveries")
+            .then()
+                .assertThat()
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .statusCode(HttpStatus.OK.value())
+                .body("page.totalElements", Matchers.greaterThanOrEqualTo(2));
+    }
+
     private DeliveryInput createValidDeliveryInput() {
         ContactPointInput sender = new ContactPointInput();
         sender.setZipCode("12345-000");

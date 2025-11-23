@@ -1,32 +1,6 @@
 spring:
-  application:
-    name: delivery-tracking
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: true
-  flyway:
-    enabled: true
-    locations: classpath:db/migration
-    baseline-on-migrate: true
-  kafka:
-    enabled: true
-    producer:
-      enabled: true
-  cloud:
-    discovery:
-      enabled: false
-    loadbalancer:
-      enabled: false
-  main:
-    allow-bean-definition-overriding: true
-  autoconfigure:
-    exclude:
-    # - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
-
-eureka:
-  client:
-    enabled: false
-
-courier-management:
-  url: http://localhost:8782
+  profiles:
+    active: test
+    group:
+      test:
+      - test-env

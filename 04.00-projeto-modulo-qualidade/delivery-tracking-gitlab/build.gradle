@@ -57,6 +57,8 @@ dependencies {
     testImplementation 'org.testcontainers:junit-jupiter:1.20.4'
     testImplementation 'org.testcontainers:postgresql:1.20.4'
     testImplementation 'org.testcontainers:kafka:1.20.4'
+    testImplementation 'io.rest-assured:rest-assured:5.5.0'
+    testImplementation 'org.wiremock:wiremock-standalone:3.3.1'
 }
 
 dependencyManagement {
@@ -90,8 +92,7 @@ jacocoTestReport {
         classDirectories.setFrom(files(classDirectories.files.collect {
             fileTree(dir: it, exclude: [
                 '**/DeliveryTrackingApplication.class',
-                '**/config/**',
-                '**/api/controller/**',
+                // '**/api/controller/**',
                 '**/event/**Model.class',
                 '**/model/**Input.class',
                 '**/model/**Model.class'
@@ -113,8 +114,7 @@ jacocoTestCoverageVerification {
         classDirectories.setFrom(files(classDirectories.files.collect {
             fileTree(dir: it, exclude: [
                 '**/DeliveryTrackingApplication.class',
-                '**/config/**',
-                '**/api/controller/**',
+                // '**/api/controller/**',
                 '**/event/**Model.class',
                 '**/model/**Input.class',
                 '**/model/**Model.class'

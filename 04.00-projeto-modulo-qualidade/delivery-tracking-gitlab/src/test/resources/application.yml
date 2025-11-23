@@ -10,7 +10,9 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
   kafka:
-    enabled: false
+    enabled: true
+    producer:
+      enabled: true
   cloud:
     discovery:
       enabled: false
@@ -18,10 +20,13 @@ spring:
       enabled: false
   main:
     allow-bean-definition-overriding: true
+  autoconfigure:
+    exclude:
+    # - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
 
 eureka:
   client:
     enabled: false
 
 courier-management:
-  url: http://localhost:8081
+  url: http://localhost:8782

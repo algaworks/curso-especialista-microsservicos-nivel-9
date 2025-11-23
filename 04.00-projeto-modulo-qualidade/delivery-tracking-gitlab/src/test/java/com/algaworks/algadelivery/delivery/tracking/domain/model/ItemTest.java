@@ -2,10 +2,7 @@ package com.algaworks.algadelivery.delivery.tracking.domain.model;
 
 import org.junit.jupiter.api.Test;
 
-import java.math.BigDecimal;
-import java.time.Duration;
-
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class ItemTest {
 
@@ -15,18 +12,18 @@ class ItemTest {
         
         Item item = Item.brandNew("Pizza Margherita", 2, delivery);
 
-        assertNotNull(item.getId());
-        assertEquals("Pizza Margherita", item.getName());
-        assertEquals(2, item.getQuantity());
+        assertThat(item.getId()).isNotNull();
+        assertThat(item.getName()).isEqualTo("Pizza Margherita");
+        assertThat(item.getQuantity()).isEqualTo(2);
     }
 
     @Test
-    void shouldBeEqualWhenSameId() {
+    void shouldNotBeEqualWhenDifferentId() {
         Delivery delivery = Delivery.draft();
         Item item1 = Item.brandNew("Pizza Margherita", 2, delivery);
         Item item2 = Item.brandNew("Refrigerante", 3, delivery);
 
-        assertNotEquals(item1, item2);
+        assertThat(item1).isNotEqualTo(item2);
     }
 
     @Test
@@ -36,7 +33,7 @@ class ItemTest {
 
         item.setQuantity(5);
 
-        assertEquals(5, item.getQuantity());
+        assertThat(item.getQuantity()).isEqualTo(5);
     }
 
     @Test
@@ -45,6 +42,6 @@ class ItemTest {
         Item item1 = Item.brandNew("Pizza Margherita", 2, delivery);
         Item item2 = Item.brandNew("Pizza Margherita", 2, delivery);
 
-        assertNotEquals(item1.hashCode(), item2.hashCode());
+        assertThat(item1.hashCode()).isNotEqualTo(item2.hashCode());
     }
 }

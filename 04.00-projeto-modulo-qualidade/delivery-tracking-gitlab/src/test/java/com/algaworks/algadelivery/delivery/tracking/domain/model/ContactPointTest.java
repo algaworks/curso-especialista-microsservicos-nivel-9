@@ -2,7 +2,7 @@ package com.algaworks.algadelivery.delivery.tracking.domain.model;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class ContactPointTest {
 
@@ -17,12 +17,12 @@ class ContactPointTest {
                 .phone("(11) 99999-8888")
                 .build();
 
-        assertEquals("12345-678", contactPoint.getZipCode());
-        assertEquals("Rua Exemplo", contactPoint.getStreet());
-        assertEquals("123", contactPoint.getNumber());
-        assertEquals("Apto 45", contactPoint.getComplement());
-        assertEquals("João Silva", contactPoint.getName());
-        assertEquals("(11) 99999-8888", contactPoint.getPhone());
+        assertThat(contactPoint.getZipCode()).isEqualTo("12345-678");
+        assertThat(contactPoint.getStreet()).isEqualTo("Rua Exemplo");
+        assertThat(contactPoint.getNumber()).isEqualTo("123");
+        assertThat(contactPoint.getComplement()).isEqualTo("Apto 45");
+        assertThat(contactPoint.getName()).isEqualTo("João Silva");
+        assertThat(contactPoint.getPhone()).isEqualTo("(11) 99999-8888");
     }
 
     @Test
@@ -45,8 +45,8 @@ class ContactPointTest {
                 .phone("(11) 99999-8888")
                 .build();
 
-        assertEquals(contact1, contact2);
-        assertEquals(contact1.hashCode(), contact2.hashCode());
+        assertThat(contact1).isEqualTo(contact2);
+        assertThat(contact1.hashCode()).isEqualTo(contact2.hashCode());
     }
 
     @Test
@@ -69,7 +69,7 @@ class ContactPointTest {
                 .phone("(11) 88888-7777")
                 .build();
 
-        assertNotEquals(contact1, contact2);
+        assertThat(contact1).isNotEqualTo(contact2);
     }
 
     @Test
@@ -83,6 +83,6 @@ class ContactPointTest {
                 .phone("(11) 99999-8888")
                 .build();
 
-        assertEquals("", contactPoint.getComplement());
+        assertThat(contactPoint.getComplement()).isEmpty();
     }
 }

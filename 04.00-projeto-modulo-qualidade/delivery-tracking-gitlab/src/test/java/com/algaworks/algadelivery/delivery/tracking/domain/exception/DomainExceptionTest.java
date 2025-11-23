@@ -2,7 +2,7 @@ package com.algaworks.algadelivery.delivery.tracking.domain.exception;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class DomainExceptionTest {
 
@@ -10,7 +10,7 @@ class DomainExceptionTest {
     void shouldCreateExceptionWithoutMessage() {
         DomainException exception = new DomainException();
 
-        assertNull(exception.getMessage());
+        assertThat(exception.getMessage()).isNull();
     }
 
     @Test
@@ -18,7 +18,7 @@ class DomainExceptionTest {
         String message = "Invalid operation";
         DomainException exception = new DomainException(message);
 
-        assertEquals(message, exception.getMessage());
+        assertThat(exception.getMessage()).isEqualTo(message);
     }
 
     @Test
@@ -28,14 +28,14 @@ class DomainExceptionTest {
         
         DomainException exception = new DomainException(message, cause);
 
-        assertEquals(message, exception.getMessage());
-        assertEquals(cause, exception.getCause());
+        assertThat(exception.getMessage()).isEqualTo(message);
+        assertThat(exception.getCause()).isEqualTo(cause);
     }
 
     @Test
     void shouldBeRuntimeException() {
         DomainException exception = new DomainException();
 
-        assertInstanceOf(RuntimeException.class, exception);
+        assertThat(exception).isInstanceOf(RuntimeException.class);
     }
 }

@@ -1,5 +1,6 @@
 package com.algaworks.algadelivery.delivery.tracking.infrastructure.http.client;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,6 +15,9 @@ import java.time.Duration;
 @Configuration
 public class CourierAPIClientConfig {
 
+    @Value("${courier-management.url:http://courier-management}")
+    private String courierManagementUrl;
+
     @Bean
     @LoadBalanced
     public RestClient.Builder loadBalacendRestClientBuilder() {
@@ -22,7 +26,7 @@ public class CourierAPIClientConfig {
 
     @Bean
     public CourierAPIClient courierAPIClient(RestClient.Builder builder) {
-        RestClient restClient = builder.baseUrl("http://courier-management")
+        RestClient restClient = builder.baseUrl(courierManagementUrl)
                 .requestFactory(generateClientRequestFactory())
                 .build();
         RestClientAdapter adapter = RestClientAdapter.create(restClient);

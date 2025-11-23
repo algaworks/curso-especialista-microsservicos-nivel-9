@@ -1,13 +1,11 @@
 package com.algaworks.algadelivery.delivery.tracking.domain.repository;
 
-import com.algaworks.algadelivery.delivery.tracking.AbstractTestContainers;
 import com.algaworks.algadelivery.delivery.tracking.domain.model.ContactPoint;
 import com.algaworks.algadelivery.delivery.tracking.domain.model.Delivery;
 import com.algaworks.algadelivery.delivery.tracking.domain.model.DeliveryStatus;
+import com.algaworks.algadelivery.delivery.tracking.infrastructure.persistence.AbstractPersistenceIT;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -15,11 +13,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-class DeliveryRepositoryTest extends AbstractTestContainers {
+class DeliveryRepositoryTest extends AbstractPersistenceIT {
 
     @Autowired
     private DeliveryRepository deliveryRepository;
@@ -33,9 +29,9 @@ class DeliveryRepositoryTest extends AbstractTestContainers {
 
         Delivery savedDelivery = deliveryRepository.saveAndFlush(delivery);
 
-        assertNotNull(savedDelivery.getId());
-        assertEquals(2, savedDelivery.getItems().size());
-        assertEquals(5, savedDelivery.getTotalItems());
+        assertThat(savedDelivery.getId()).isNotNull();
+        assertThat(savedDelivery.getItems()).hasSize(2);
+        assertThat(savedDelivery.getTotalItems()).isEqualTo(5);
     }
 
     @Test
@@ -44,10 +40,10 @@ class DeliveryRepositoryTest extends AbstractTestContainers {
 
         Optional<Delivery> foundDelivery = deliveryRepository.findById(delivery.getId());
 
-        assertTrue(foundDelivery.isPresent());
-        assertEquals(delivery.getId(), foundDelivery.get().getId());
-        assertEquals("João Silva", foundDelivery.get().getSender().getName());
-        assertEquals("Maria Silva", foundDelivery.get().getRecipient().getName());
+        assertThat(foundDelivery).isPresent();
+        assertThat(foundDelivery.get().getId()).isEqualTo(delivery.getId());
+        assertThat(foundDelivery.get().getSender().getName()).isEqualTo("João Silva");
+        assertThat(foundDelivery.get().getRecipient().getName()).isEqualTo("Maria Silva");
     }
 
     @Test
@@ -56,7 +52,7 @@ class DeliveryRepositoryTest extends AbstractTestContainers {
 
         Optional<Delivery> foundDelivery = deliveryRepository.findById(randomId);
 
-        assertFalse(foundDelivery.isPresent());
+        assertThat(foundDelivery).isEmpty();
     }
 
     @Test
@@ -67,8 +63,8 @@ class DeliveryRepositoryTest extends AbstractTestContainers {
         deliveryRepository.saveAndFlush(delivery);
         Delivery updatedDelivery = deliveryRepository.findById(delivery.getId()).orElseThrow();
 
-        assertEquals(DeliveryStatus.WAITING_FOR_COURIER, updatedDelivery.getStatus());
-        assertNotNull(updatedDelivery.getPlacedAt());
+        assertThat(updatedDelivery.getStatus()).isEqualTo(DeliveryStatus.WAITING_FOR_COURIER);
+        assertThat(updatedDelivery.getPlacedAt()).isNotNull();
     }
 
     @Test
@@ -80,7 +76,7 @@ class DeliveryRepositoryTest extends AbstractTestContainers {
         deliveryRepository.flush();
 
         Optional<Delivery> deletedDelivery = deliveryRepository.findById(deliveryId);
-        assertFalse(deletedDelivery.isPresent());
+        assertThat(deletedDelivery).isEmpty();
     }
 
     @Test
@@ -90,9 +86,9 @@ class DeliveryRepositoryTest extends AbstractTestContainers {
 
         List<Delivery> deliveries = deliveryRepository.findAll();
 
-        assertTrue(deliveries.size() >= 2);
-        assertTrue(deliveries.stream().anyMatch(d -> d.getId().equals(delivery1.getId())));
-        assertTrue(deliveries.stream().anyMatch(d -> d.getId().equals(delivery2.getId())));
+        assertThat(deliveries.size()).isGreaterThanOrEqualTo(2);
+        assertThat(deliveries).anyMatch(d -> d.getId().equals(delivery1.getId()));
+        assertThat(deliveries).anyMatch(d -> d.getId().equals(delivery2.getId()));
     }
 
     @Test
@@ -104,7 +100,7 @@ class DeliveryRepositoryTest extends AbstractTestContainers {
 
         long count = deliveryRepository.count();
 
-        assertEquals(3, count);
+        assertThat(count).isEqualTo(3);
     }
 
     @Test
@@ -113,7 +109,7 @@ class DeliveryRepositoryTest extends AbstractTestContainers {
 
         boolean exists = deliveryRepository.existsById(delivery.getId());
 
-        assertTrue(exists);
+        assertThat(exists).isTrue();
     }
 
     @Test
@@ -122,7 +118,7 @@ class DeliveryRepositoryTest extends AbstractTestContainers {
 
         boolean exists = deliveryRepository.existsById(randomId);
 
-        assertFalse(exists);
+        assertThat(exists).isFalse();
     }
 
     @Test
@@ -135,9 +131,9 @@ class DeliveryRepositoryTest extends AbstractTestContainers {
         deliveryRepository.saveAndFlush(delivery);
         Delivery persistedDelivery = deliveryRepository.findById(delivery.getId()).orElseThrow();
 
-        assertEquals(DeliveryStatus.IN_TRANSIT, persistedDelivery.getStatus());
-        assertEquals(courierId, persistedDelivery.getCourierId());
-        assertNotNull(persistedDelivery.getAssignedAt());
+        assertThat(persistedDelivery.getStatus()).isEqualTo(DeliveryStatus.IN_TRANSIT);
+        assertThat(persistedDelivery.getCourierId()).isEqualTo(courierId);
+        assertThat(persistedDelivery.getAssignedAt()).isNotNull();
     }
 
     @Test
@@ -159,11 +155,11 @@ class DeliveryRepositoryTest extends AbstractTestContainers {
 
         Delivery finalDelivery = deliveryRepository.findById(delivery.getId()).orElseThrow();
 
-        assertEquals(DeliveryStatus.DELIVERED, finalDelivery.getStatus());
-        assertNotNull(finalDelivery.getPlacedAt());
-        assertNotNull(finalDelivery.getAssignedAt());
-        assertNotNull(finalDelivery.getFulfilledAt());
-        assertEquals(courierId, finalDelivery.getCourierId());
+        assertThat(finalDelivery.getStatus()).isEqualTo(DeliveryStatus.DELIVERED);
+        assertThat(finalDelivery.getPlacedAt()).isNotNull();
+        assertThat(finalDelivery.getAssignedAt()).isNotNull();
+        assertThat(finalDelivery.getFulfilledAt()).isNotNull();
+        assertThat(finalDelivery.getCourierId()).isEqualTo(courierId);
     }
 
     @Test
@@ -179,8 +175,8 @@ class DeliveryRepositoryTest extends AbstractTestContainers {
         deliveryRepository.saveAndFlush(delivery);
         Delivery persistedDelivery = deliveryRepository.findById(delivery.getId()).orElseThrow();
 
-        assertEquals(4, persistedDelivery.getItems().size());
-        assertEquals(8, persistedDelivery.getTotalItems());
+        assertThat(persistedDelivery.getItems()).hasSize(4);
+        assertThat(persistedDelivery.getTotalItems()).isEqualTo(8);
     }
 
     @Test
@@ -198,8 +194,8 @@ class DeliveryRepositoryTest extends AbstractTestContainers {
         deliveryRepository.saveAndFlush(delivery);
         Delivery persistedDelivery = deliveryRepository.findById(delivery.getId()).orElseThrow();
 
-        assertEquals(1, persistedDelivery.getItems().size());
-        assertEquals(3, persistedDelivery.getTotalItems());
+        assertThat(persistedDelivery.getItems()).hasSize(1);
+        assertThat(persistedDelivery.getTotalItems()).isEqualTo(3);
     }
 
     @Test
@@ -213,9 +209,9 @@ class DeliveryRepositoryTest extends AbstractTestContainers {
         deliveryRepository.saveAndFlush(delivery);
         Delivery persistedDelivery = deliveryRepository.findById(delivery.getId()).orElseThrow();
 
-        assertEquals(1, persistedDelivery.getItems().size());
-        assertEquals(5, persistedDelivery.getTotalItems());
-        assertEquals(5, persistedDelivery.getItems().get(0).getQuantity());
+        assertThat(persistedDelivery.getItems()).hasSize(1);
+        assertThat(persistedDelivery.getTotalItems()).isEqualTo(5);
+        assertThat(persistedDelivery.getItems().get(0).getQuantity()).isEqualTo(5);
     }
 
     @Test
@@ -241,9 +237,9 @@ class DeliveryRepositoryTest extends AbstractTestContainers {
         deliveryRepository.saveAndFlush(delivery);
         Delivery persistedDelivery = deliveryRepository.findById(delivery.getId()).orElseThrow();
 
-        assertEquals(new BigDecimal("36.25"), persistedDelivery.getTotalCost());
-        assertEquals(distanceFee, persistedDelivery.getDistanceFee());
-        assertEquals(courierPayout, persistedDelivery.getCourierPayout());
+        assertThat(persistedDelivery.getTotalCost()).isEqualByComparingTo(new BigDecimal("36.25"));
+        assertThat(persistedDelivery.getDistanceFee()).isEqualByComparingTo(distanceFee);
+        assertThat(persistedDelivery.getCourierPayout()).isEqualByComparingTo(courierPayout);
     }
 
     private Delivery createAndSaveDelivery() {

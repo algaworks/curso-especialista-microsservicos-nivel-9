@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.time.Duration;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class PreparationDetailsTest {
 
@@ -35,11 +35,11 @@ class PreparationDetailsTest {
                 .expectedDeliveryTime(Duration.ofHours(5))
                 .build();
 
-        assertEquals(sender, details.getSender());
-        assertEquals(recipient, details.getRecipient());
-        assertEquals(new BigDecimal("15.00"), details.getDistanceFee());
-        assertEquals(new BigDecimal("5.00"), details.getCourierPayout());
-        assertEquals(Duration.ofHours(5), details.getExpectedDeliveryTime());
+        assertThat(details.getSender()).isEqualTo(sender);
+        assertThat(details.getRecipient()).isEqualTo(recipient);
+        assertThat(details.getDistanceFee()).isEqualByComparingTo(new BigDecimal("15.00"));
+        assertThat(details.getCourierPayout()).isEqualByComparingTo(new BigDecimal("5.00"));
+        assertThat(details.getExpectedDeliveryTime()).isEqualTo(Duration.ofHours(5));
     }
 
     @Test
@@ -68,6 +68,6 @@ class PreparationDetailsTest {
                 .expectedDeliveryTime(Duration.ofMinutes(45))
                 .build();
 
-        assertEquals(Duration.ofMinutes(45), details.getExpectedDeliveryTime());
+        assertThat(details.getExpectedDeliveryTime()).isEqualTo(Duration.ofMinutes(45));
     }
 }

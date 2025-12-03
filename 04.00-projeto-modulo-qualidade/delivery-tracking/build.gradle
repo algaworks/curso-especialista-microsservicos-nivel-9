@@ -4,11 +4,21 @@ plugins {
     id 'jacoco'
     id 'org.springframework.boot' version '3.5.5'
     id 'io.spring.dependency-management' version '1.1.6'
+    id "org.sonarqube" version "7.1.0.6387"
 }
 
 group = 'com.algaworks.algadelivery'
 version = findProperty('version') ?: 'canary'
 description = 'Delivery-Tracking'
+
+sonar {
+  properties {
+    property "sonar.projectKey", "algadelivery_delivery-tracking"
+    property "sonar.organization", "algadelivery"
+    property "sonar.coverage.jacoco.xmlReportPaths", "${buildDir}/reports/jacoco/test/jacocoTestReport.xml"
+    property "sonar.coverage.exclusions", "**/event/**,**/model/**,**/api/model/**,**/DeliveryTrackingApplication.java"
+  }
+}
 
 java {
     toolchain {
@@ -94,16 +104,19 @@ jacocoTestReport {
         csv.required = false
     }
     afterEvaluate {
-        classDirectories.setFrom(files(classDirectories.files.collect {
-            fileTree(dir: it, exclude: [
-                '**/DeliveryTrackingApplication.class',
-                // '**/api/controller/**',
-                '**/event/**Model.class',
-                '**/model/**Input.class',
-                '**/model/**Model.class'
-            ])
-        }))
+        classDirectories.setFrom(
+            files(classDirectories.files.collect {
+                fileTree(dir: it,
+                    exclude: [
+                        '**/DeliveryTrackingApplication.class',
+                        '**/event/**',
+                        '**/model/**',
+                        '**/api/model/**',
+                    ])
+            })
+        )
     }
+    finalizedBy jacocoTestCoverageVerification
 }
 
 jacocoTestCoverageVerification {
@@ -116,14 +129,16 @@ jacocoTestCoverageVerification {
         }
     }
     afterEvaluate {
-        classDirectories.setFrom(files(classDirectories.files.collect {
-            fileTree(dir: it, exclude: [
-                '**/DeliveryTrackingApplication.class',
-                // '**/api/controller/**',
-                '**/event/**Model.class',
-                '**/model/**Input.class',
-                '**/model/**Model.class'
-            ])
-        }))
+        classDirectories.setFrom(
+            files(classDirectories.files.collect {
+                fileTree(dir: it,
+                    exclude: [
+                        '**/DeliveryTrackingApplication.class',
+                        '**/event/**',
+                        '**/model/**',
+                        '**/api/model/**',
+                    ])
+            })
+        )
     }
 }

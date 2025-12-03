@@ -1,0 +1,95 @@
+image: gradle:8.8-jdk21-alpine
+
+stages:
+  - prepare_version
+  - test
+  - build
+  - build_and_push
+  - semantic_release
+
+variables:
+  DOCKER_HOST: tcp://docker:2376
+  DOCKER_TLS_VERIFY: 1
+  DOCKER_TLS_CERTDIR: "/certs"
+  DOCKER_CERT_PATH: "/certs/client"
+  DOCKER_DRIVER: overlay2
+
+.rules-standard: &rules-standard
+  - if: $CI_COMMIT_BRANCH =~ /^(main|develop)$/ && $CI_PIPELINE_SOURCE == "push"
+    when: always
+
+prepare_version:
+  image: algaworks/devops-semantic-release:v1.0.1
+  stage: prepare_version
+  rules: *rules-standard
+  script: 
+    - echo "Preparando a versão do projeto..."
+    - semantic-release --dry-run --no-ci
+    - |
+      if [ ! -e .VERSION ]; then 
+        echo "canary" > .VERSION 
+      else 
+        echo "Arquivo .VERSION já existe."
+      fi
+
+    - echo "Declarando variaveis de ambiente..."
+    - echo "NEXT_VERSION=$(cat .VERSION)" >> build.env
+  artifacts:
+    reports:
+      dotenv: build.env
+
+test_project:
+  stage: test
+  rules: *rules-standard
+  services:
+    - name: docker:24-dind
+  script:
+    - gradle test --info --stacktrace
+  artifacts:
+    reports:
+      junit: build/test-results/test/TEST-*.xml
+    paths:
+      - build/reports/tests/
+      - build/test-results/test/TEST-*.xml
+      - build/reports/problems/
+    expire_in: 1 hour
+    when: always
+
+build_project:
+  stage: build
+  rules: *rules-standard
+  script:
+    - gradle clean bootJar --info --stacktrace -Pversion=${NEXT_VERSION:-canary}
+  artifacts:
+    paths:
+      - build/libs/*.jar
+    expire_in: 30 minutes
+
+build_and_push:
+  stage: build_and_push
+  image: docker:24-cli
+  rules: *rules-standard
+  services:
+    - name: docker:24-dind
+  variables:
+    DOCKER_ORGANIZATION: algaworks
+    DOCKER_REPOSITORY_NAME: delivery-tracking
+  before_script:
+    - echo "Fazendo login no Docker Hub..."
+    - echo "$DOCKER_SECRET" | docker login -u "$DOCKER_USERNAME" --password-stdin
+    - docker info
+    - docker --version
+  script:
+    - echo "Construindo a imagem Docker..."
+    - docker build -t $DOCKER_ORGANIZATION/$DOCKER_REPOSITORY_NAME:${NEXT_VERSION:-canary} .
+    - echo "Enviando a imagem Docker para o Docker Hub..."  
+    - docker push $DOCKER_ORGANIZATION/$DOCKER_REPOSITORY_NAME:${NEXT_VERSION:-canary}
+    - echo "Imagem Docker enviada com sucesso!"
+
+semantic_release:
+  image: algaworks/devops-semantic-release:v1.0.1
+  stage: semantic_release
+  rules: *rules-standard
+  script: 
+    - echo "Executando o Semantic Release..."
+    - semantic-release --no-ci

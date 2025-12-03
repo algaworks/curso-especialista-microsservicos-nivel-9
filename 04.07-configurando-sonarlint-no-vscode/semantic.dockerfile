@@ -1,0 +1,12 @@
+FROM node:22-alpine
+
+RUN apk update && apk add --no-cache git && \
+  npm install -g semantic-release@24.0.0 \
+  @semantic-release/commit-analyzer@13.0.0 \
+  @semantic-release/release-notes-generator@14.0.0 \
+  @semantic-release/changelog@6.0.3 \
+  @semantic-release/gitlab@13.1.0 \
+  @semantic-release/exec@6.0.3 \
+  @semantic-release/git@10.0.1 \
+  conventional-changelog-conventionalcommits@8.0.0 \
+  conventional-changelog-cli@5.0.0

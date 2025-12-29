@@ -22,7 +22,7 @@ public class CourierAPIClientConfig {
 
     @Bean
     public CourierAPIClient courierAPIClient(RestClient.Builder builder) {
-        RestClient restClient = builder.baseUrl("http://courier-management")
+        RestClient restClient = builder.baseUrl("http://module-api-fintech")
                 .requestFactory(generateClientRequestFactory())
                 .build();
         RestClientAdapter adapter = RestClientAdapter.create(restClient);

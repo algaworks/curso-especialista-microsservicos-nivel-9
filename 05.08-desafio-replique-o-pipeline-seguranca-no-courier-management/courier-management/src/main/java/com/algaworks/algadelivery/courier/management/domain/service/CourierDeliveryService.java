@@ -1,6 +1,5 @@
 package com.algaworks.algadelivery.courier.management.domain.service;
 
-import com.algaworks.algadelivery.courier.management.domain.exception.DomainException;
 import com.algaworks.algadelivery.courier.management.domain.model.Courier;
 import com.algaworks.algadelivery.courier.management.domain.repository.CourierRepository;
 import lombok.RequiredArgsConstructor;
@@ -12,32 +11,30 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 @Slf4j
 public class CourierDeliveryService {
 
     private final CourierRepository courierRepository;
 
-    @Transactional
-    public void assignDelivery(UUID deliveryId) {
-        if (courierRepository.existsByPendingDeliveries_id(deliveryId)) {
-            throw new DomainException();
-        }
-
+    public void assign(UUID deliveryId) {
         Courier courier = courierRepository.findTop1ByOrderByLastFulfilledDeliveryAtAsc()
-                .orElseThrow(()-> new DomainException());
+                .orElseThrow();
 
         courier.assign(deliveryId);
+
+        courierRepository.saveAndFlush(courier);
 
         log.info("Courier {} assigned to delivery {}", courier.getId(), deliveryId);
     }
 
-
-    @Transactional
-    public void fulfillDelivery(UUID deliveryId) {
+    public void fulfill(UUID deliveryId) {
         Courier courier = courierRepository.findByPendingDeliveries_id(deliveryId)
-                .orElseThrow(()-> new DomainException());
+                .orElseThrow();
 
         courier.fulfill(deliveryId);
+
+        courierRepository.saveAndFlush(courier);
 
         log.info("Courier {} fulfilled the delivery {}", courier.getId(), deliveryId);
     }

@@ -2,13 +2,14 @@ plugins {
     id 'java'
     id 'idea'
     id 'jacoco'
-    id 'org.springframework.boot' version '3.5.8'
+    id 'org.springframework.boot' version '3.5.3'
     id 'io.spring.dependency-management' version '1.1.6'
     id "org.sonarqube" version "7.1.0.6387"
 }
 
 group = 'com.algaworks.algadelivery'
-version = findProperty('version') ?: 'canary'
+def resolvedVersion = findProperty('version')
+version = (resolvedVersion && resolvedVersion != 'unspecified') ? resolvedVersion : 'canary'
 description = 'Courier-Management'
 
 sonar {
@@ -56,8 +57,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    implementation 'org.springframework.kafka:spring-kafka'
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+    implementation 'org.springframework.kafka:spring-kafka'
     implementation 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     implementation 'org.flywaydb:flyway-core'
@@ -66,11 +67,11 @@ dependencies {
     testImplementation 'org.springframework.kafka:spring-kafka-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-testcontainers'
-    testImplementation 'org.testcontainers:testcontainers:1.20.4'
-    testImplementation 'org.testcontainers:junit-jupiter:1.20.4'
-    testImplementation 'org.testcontainers:postgresql:1.20.4'
-    testImplementation 'org.testcontainers:kafka:1.20.4'
-    testImplementation 'io.rest-assured:rest-assured:5.5.0'
+    testImplementation 'org.testcontainers:testcontainers'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:postgresql'
+    testImplementation 'org.testcontainers:kafka'
+    testImplementation 'io.rest-assured:rest-assured:5.5.5'
 }
 
 dependencyManagement {
@@ -79,13 +80,13 @@ dependencyManagement {
     }
 }
 
-bootJar {
-    archiveBaseName = 'courier-management'
-    archiveVersion = "${version}"
-}
-
 tasks.named('test') {
     useJUnitPlatform()
+    // Permite forcar a versao da API do Docker usada pelo Testcontainers quando o daemon
+    // local recusa a versao negociada por padrao. Sem a env definida, nada muda.
+    if (System.getenv('DOCKER_API_VERSION')) {
+        systemProperty 'api.version', System.getenv('DOCKER_API_VERSION')
+    }
     finalizedBy jacocoTestReport
 }
 
@@ -141,4 +142,9 @@ jacocoTestCoverageVerification {
             })
         )
     }
+}
+
+bootJar {
+    archiveBaseName = 'courier-management'
+    archiveVersion = "${version}"
 }

@@ -1,0 +1,119 @@
+image: gradle:8.8-jdk21-alpine
+
+stages:
+  - prepare_version
+  - test
+  - build
+  - build_and_push
+  - semantic_release
+
+variables:
+  DOCKER_HOST: tcp://docker:2376
+  DOCKER_TLS_VERIFY: 1
+  DOCKER_TLS_CERTDIR: "/certs"
+  DOCKER_CERT_PATH: "/certs/client"
+  DOCKER_DRIVER: overlay2
+  DOCKER_ORGANIZATION: algaworks
+  DOCKER_REPOSITORY_NAME: courier-management
+
+.rules-standard: &rules-standard
+  - if: $CI_COMMIT_BRANCH =~ /^(main|develop)$/ && $CI_PIPELINE_SOURCE == "push"
+    when: always
+
+prepare_version:
+  image: algaworks/devops-semantic-release:v1.0.1
+  stage: prepare_version
+  rules: *rules-standard
+  script:
+    - echo "Preparando a versão do projeto..."
+    - semantic-release --dry-run --no-ci
+    - |
+      if [ ! -e .VERSION ]; then
+        echo "canary" > .VERSION
+      else
+        echo "Arquivo .VERSION já existe."
+      fi
+
+    - echo "Declarando variaveis de ambiente..."
+    - echo "NEXT_VERSION=$(cat .VERSION)" >> build.env
+  artifacts:
+    reports:
+      dotenv: build.env
+
+test_project:
+  stage: test
+  rules: *rules-standard
+  script:
+    - gradle test --info --stacktrace
+  artifacts:
+    reports:
+      junit: build/test-results/test/TEST-*.xml
+    paths:
+      - build/reports/tests/
+      - build/test-results/test/TEST-*.xml
+      - build/reports/problems/
+    expire_in: 1 hour
+    when: always
+
+test_migration:
+  stage: test
+  image: alpine:latest
+  rules: *rules-standard
+  services:
+    - name: postgres:17.5
+      alias: database
+  variables:
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: postgres
+    POSTGRES_DB: courierdb_test
+  before_script:
+    - apk add --no-cache postgresql-client netcat-openbsd
+    - echo "Esperando o PostgreSQL ficar disponível..."
+    - |
+      until nc -z database 5432; do
+        echo "Aguardando o banco de dados..."
+        sleep 2
+      done
+    - echo "PostgreSQL está disponível!"
+  script:
+    - echo "Verificando a conexão com o banco de dados..."
+    - PGPASSWORD="$POSTGRES_PASSWORD" psql -h database -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT version();"
+    - echo "Aplicando a migration do Flyway no banco de dados..."
+    - PGPASSWORD="$POSTGRES_PASSWORD" psql -h database -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -f src/main/resources/db/migration/V1__Create_courier_tables.sql
+    - echo "Migration aplicada com sucesso!"
+
+build_project:
+  stage: build
+  rules: *rules-standard
+  script:
+    - gradle clean bootJar --info --stacktrace -Pversion=${NEXT_VERSION:-canary}
+  artifacts:
+    paths:
+      - build/libs/*.jar
+    expire_in: 30 minutes
+
+build_and_push:
+  stage: build_and_push
+  image: docker:28-cli
+  rules: *rules-standard
+  services:
+    - name: docker:28-dind
+  before_script:
+    - echo "Fazendo login no Docker Hub..."
+    - echo "$DOCKER_SECRET" | docker login -u "$DOCKER_USERNAME" --password-stdin
+    - docker info
+    - docker --version
+  script:
+    - echo "Construindo a imagem Docker..."
+    - docker build -t $DOCKER_ORGANIZATION/$DOCKER_REPOSITORY_NAME:${NEXT_VERSION:-canary} .
+    - echo "Enviando a imagem Docker para o Docker Hub..."
+    - docker push $DOCKER_ORGANIZATION/$DOCKER_REPOSITORY_NAME:${NEXT_VERSION:-canary}
+    - echo "Imagem Docker enviada com sucesso!"
+
+semantic_release:
+  image: algaworks/devops-semantic-release:v1.0.1
+  stage: semantic_release
+  rules: *rules-standard
+  script:
+    - echo "Executando o Semantic Release..."
+    - semantic-release --no-ci

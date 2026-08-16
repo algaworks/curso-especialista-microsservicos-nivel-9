@@ -22,33 +22,36 @@ class KafkaDeliveriesMessageHandlerTest {
     private CourierDeliveryService courierDeliveryService;
 
     @InjectMocks
-    private KafkaDeliveriesMessageHandler kafkaDeliveriesMessageHandler;
+    private KafkaDeliveriesMessageHandler handler;
 
     @Test
-    void shouldAssignDeliveryWhenDeliveryPlacedEventIsReceived() {
+    void shouldAssignCourierWhenDeliveryIsPlaced() {
         UUID deliveryId = UUID.randomUUID();
+        DeliveryPlacedIntegrationEvent event = new DeliveryPlacedIntegrationEvent();
+        event.setDeliveryId(deliveryId);
+        event.setOccurredAt(OffsetDateTime.now());
 
-        kafkaDeliveriesMessageHandler.handle(
-                new DeliveryPlacedIntegrationEvent(OffsetDateTime.now(), deliveryId));
+        handler.handle(event);
 
-        verify(courierDeliveryService).assignDelivery(deliveryId);
+        verify(courierDeliveryService).assign(deliveryId);
     }
 
     @Test
-    void shouldFulfillDeliveryWhenDeliveryFulfilledEventIsReceived() {
+    void shouldFulfillDeliveryWhenDeliveryIsFulfilled() {
         UUID deliveryId = UUID.randomUUID();
+        DeliveryFulfilledIntegrationEvent event = new DeliveryFulfilledIntegrationEvent();
+        event.setDeliveryId(deliveryId);
+        event.setOccurredAt(OffsetDateTime.now());
 
-        kafkaDeliveriesMessageHandler.handle(
-                new DeliveryFulfilledIntegrationEvent(OffsetDateTime.now(), deliveryId));
+        handler.handle(event);
 
-        verify(courierDeliveryService).fulfillDelivery(deliveryId);
+        verify(courierDeliveryService).fulfill(deliveryId);
     }
 
     @Test
-    void shouldIgnoreUnmappedMessagesOnDefaultHandler() {
-        kafkaDeliveriesMessageHandler.handle("any-unmapped-payload", "message-key", "10");
+    void shouldIgnoreUnknownEventTypes() {
+        handler.defaultHandler("delivery-picked-up-event");
 
         verifyNoInteractions(courierDeliveryService);
     }
-
 }

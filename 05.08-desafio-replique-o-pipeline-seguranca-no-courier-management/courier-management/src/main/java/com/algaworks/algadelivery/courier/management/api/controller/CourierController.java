@@ -1,14 +1,16 @@
 package com.algaworks.algadelivery.courier.management.api.controller;
 
 import com.algaworks.algadelivery.courier.management.api.model.CourierInput;
-import com.algaworks.algadelivery.courier.management.api.model.CourierPayoutCalculateRequest;
-import com.algaworks.algadelivery.courier.management.api.model.CourierPayoutModel;
+import com.algaworks.algadelivery.courier.management.api.model.CourierPayoutCalculationInput;
+import com.algaworks.algadelivery.courier.management.api.model.CourierPayoutResultModel;
 import com.algaworks.algadelivery.courier.management.domain.model.Courier;
 import com.algaworks.algadelivery.courier.management.domain.repository.CourierRepository;
-import com.algaworks.algadelivery.courier.management.domain.service.CourierCalculationService;
+import com.algaworks.algadelivery.courier.management.domain.service.CourierPayoutService;
 import com.algaworks.algadelivery.courier.management.domain.service.CourierRegistrationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.data.web.PagedModel;
@@ -17,16 +19,19 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.util.Random;
 import java.util.UUID;
 
-@RequestMapping("/api/v1/couriers")
 @RestController
+@RequestMapping("/api/v1/couriers")
 @RequiredArgsConstructor
+@Slf4j
 public class CourierController {
 
-    private final CourierRepository courierRepository;
     private final CourierRegistrationService courierRegistrationService;
-    private final CourierCalculationService courierCalculationService;
+    private final CourierRepository courierRepository;
+
+    private final CourierPayoutService courierPayoutService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -34,8 +39,15 @@ public class CourierController {
         return courierRegistrationService.create(input);
     }
 
+    @PutMapping("/{courierId}")
+    public Courier update(@PathVariable UUID courierId,
+                          @Valid @RequestBody CourierInput input) {
+        return courierRegistrationService.update(courierId, input);
+    }
+
     @GetMapping
     public PagedModel<Courier> findAll(@PageableDefault Pageable pageable) {
+        log.info("FindAll Request");
         return new PagedModel<>(courierRepository.findAll(pageable));
     }
 
@@ -45,16 +57,21 @@ public class CourierController {
                 .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
-    @PutMapping("/{courierId}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public Courier update(@PathVariable UUID courierId, @Valid @RequestBody CourierInput input) {
-        return courierRegistrationService.update(courierId, input);
-    }
-
+    @SneakyThrows
     @PostMapping("/payout-calculation")
-    public CourierPayoutModel payoutCalculation(@RequestBody CourierPayoutCalculateRequest request) {
-        BigDecimal payoutFee = courierCalculationService.calculate(request.getDistanceInKm());
-        return new CourierPayoutModel(payoutFee);
+    public CourierPayoutResultModel calculate(
+            @RequestBody CourierPayoutCalculationInput input) {
+        log.info("Calculating");
+
+        if (Math.random() < 0.5) {
+            throw new RuntimeException();
+        }
+
+        int millis = new Random().nextInt(400);
+        Thread.sleep(millis);
+
+        BigDecimal payoutFee = courierPayoutService.calculate(input.getDistanceInKm());
+        return new CourierPayoutResultModel(payoutFee);
     }
 
 }

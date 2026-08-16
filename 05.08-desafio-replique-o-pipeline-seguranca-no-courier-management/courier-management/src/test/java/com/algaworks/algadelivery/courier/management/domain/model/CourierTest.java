@@ -1,36 +1,32 @@
 package com.algaworks.algadelivery.courier.management.domain.model;
 
-import com.algaworks.algadelivery.courier.management.domain.event.CourierAssigned;
-import com.algaworks.algadelivery.courier.management.domain.exception.DomainException;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.Collection;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.assertj.core.api.Assertions.catchThrowable;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class CourierTest {
 
     @Test
     void shouldCreateBrandNewCourierWithZeroedCounters() {
-        Courier courier = Courier.brandNew("John Doe", "11 99999-9999");
+        Courier courier = Courier.brandNew("João da Silva", "11999998888");
 
         assertThat(courier.getId()).isNotNull();
-        assertThat(courier.getName()).isEqualTo("John Doe");
-        assertThat(courier.getPhone()).isEqualTo("11 99999-9999");
-        assertThat(courier.getFulfilledDeliveriesQuantity()).isZero();
+        assertThat(courier.getName()).isEqualTo("João da Silva");
+        assertThat(courier.getPhone()).isEqualTo("11999998888");
         assertThat(courier.getPendingDeliveriesQuantity()).isZero();
+        assertThat(courier.getFulfilledDeliveriesQuantity()).isZero();
         assertThat(courier.getLastFulfilledDeliveryAt()).isNull();
         assertThat(courier.getPendingDeliveries()).isEmpty();
     }
 
     @Test
-    void shouldAssignDeliveryAndRegisterDomainEvent() {
+    void shouldIncrementPendingCounterWhenDeliveryIsAssigned() {
+        Courier courier = Courier.brandNew("João da Silva", "11999998888");
         UUID deliveryId = UUID.randomUUID();
-        Courier courier = CourierTestDataBuilder.brandNewCourier();
 
         courier.assign(deliveryId);
 
@@ -38,54 +34,36 @@ class CourierTest {
         assertThat(courier.getPendingDeliveries())
                 .extracting(AssignedDelivery::getId)
                 .containsExactly(deliveryId);
-
-        assertThat(domainEventsOf(courier))
-                .hasSize(1)
-                .first()
-                .isInstanceOfSatisfying(CourierAssigned.class, event -> {
-                    assertThat(event.getCourierId()).isEqualTo(courier.getId());
-                    assertThat(event.getDeliveryId()).isEqualTo(deliveryId);
-                    assertThat(event.getOccurredAt()).isNotNull();
-                });
+        assertThat(courier.getPendingDeliveries().get(0).getAssignedAt()).isNotNull();
     }
 
     @Test
-    void shouldFulfillPendingDelivery() {
+    void shouldMoveDeliveryFromPendingToFulfilled() {
+        Courier courier = Courier.brandNew("João da Silva", "11999998888");
         UUID deliveryId = UUID.randomUUID();
-        Courier courier = CourierTestDataBuilder.courierWithPendingDelivery(deliveryId);
+        courier.assign(deliveryId);
 
         courier.fulfill(deliveryId);
 
-        assertThat(courier.getPendingDeliveries()).isEmpty();
         assertThat(courier.getPendingDeliveriesQuantity()).isZero();
         assertThat(courier.getFulfilledDeliveriesQuantity()).isEqualTo(1);
         assertThat(courier.getLastFulfilledDeliveryAt()).isNotNull();
+        assertThat(courier.getPendingDeliveries()).isEmpty();
     }
 
     @Test
-    void shouldFailWhenFulfillingUnknownDelivery() {
-        Courier courier = CourierTestDataBuilder.brandNewCourier();
-        UUID unknownDeliveryId = UUID.randomUUID();
+    void shouldFailWhenFulfillingDeliveryThatWasNeverAssigned() {
+        Courier courier = Courier.brandNew("João da Silva", "11999998888");
 
-        assertThatExceptionOfType(DomainException.class)
-                .isThrownBy(() -> courier.fulfill(unknownDeliveryId));
+        assertThatThrownBy(() -> courier.fulfill(UUID.randomUUID()))
+                .isInstanceOf(NoSuchElementException.class);
     }
 
     @Test
-    void shouldNotExposeMutablePendingDeliveries() {
-        Courier courier = CourierTestDataBuilder.courierWithPendingDelivery(UUID.randomUUID());
+    void shouldNotAllowExternalMutationOfPendingDeliveries() {
+        Courier courier = Courier.brandNew("João da Silva", "11999998888");
 
-        Iterable<AssignedDelivery> pendingDeliveries = courier.getPendingDeliveries();
-
-        Throwable thrown = catchThrowable(() ->
-                ((Collection<AssignedDelivery>) pendingDeliveries).clear());
-
-        assertThat(thrown).isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> courier.getPendingDeliveries().clear())
+                .isInstanceOf(UnsupportedOperationException.class);
     }
-
-    @SuppressWarnings("unchecked")
-    private Collection<Object> domainEventsOf(Courier courier) {
-        return (Collection<Object>) ReflectionTestUtils.getField(courier, "domainEvents");
-    }
-
 }

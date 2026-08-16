@@ -1,8 +1,6 @@
 package com.algaworks.algadelivery.courier.management.domain.service;
 
-import com.algaworks.algadelivery.courier.management.domain.exception.DomainException;
 import com.algaworks.algadelivery.courier.management.domain.model.Courier;
-import com.algaworks.algadelivery.courier.management.domain.model.CourierTestDataBuilder;
 import com.algaworks.algadelivery.courier.management.domain.repository.CourierRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,11 +8,15 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -28,59 +30,56 @@ class CourierDeliveryServiceTest {
 
     @Test
     void shouldAssignDeliveryToTheIdlestCourier() {
+        Courier courier = Courier.brandNew("João da Silva", "11999998888");
         UUID deliveryId = UUID.randomUUID();
-        Courier courier = CourierTestDataBuilder.brandNewCourier();
+        when(courierRepository.findTop1ByOrderByLastFulfilledDeliveryAtAsc())
+                .thenReturn(Optional.of(courier));
 
-        when(courierRepository.existsByPendingDeliveries_id(deliveryId)).thenReturn(false);
-        when(courierRepository.findTop1ByOrderByLastFulfilledDeliveryAtAsc()).thenReturn(Optional.of(courier));
-
-        courierDeliveryService.assignDelivery(deliveryId);
+        courierDeliveryService.assign(deliveryId);
 
         assertThat(courier.getPendingDeliveriesQuantity()).isEqualTo(1);
         assertThat(courier.getPendingDeliveries())
-                .anyMatch(assignedDelivery -> assignedDelivery.getId().equals(deliveryId));
-    }
-
-    @Test
-    void shouldFailWhenDeliveryIsAlreadyAssigned() {
-        UUID deliveryId = UUID.randomUUID();
-        when(courierRepository.existsByPendingDeliveries_id(deliveryId)).thenReturn(true);
-
-        assertThatExceptionOfType(DomainException.class)
-                .isThrownBy(() -> courierDeliveryService.assignDelivery(deliveryId));
+                .extracting(d -> d.getId())
+                .containsExactly(deliveryId);
+        verify(courierRepository).saveAndFlush(courier);
     }
 
     @Test
     void shouldFailWhenThereIsNoCourierAvailable() {
-        UUID deliveryId = UUID.randomUUID();
-        when(courierRepository.existsByPendingDeliveries_id(deliveryId)).thenReturn(false);
-        when(courierRepository.findTop1ByOrderByLastFulfilledDeliveryAtAsc()).thenReturn(Optional.empty());
+        when(courierRepository.findTop1ByOrderByLastFulfilledDeliveryAtAsc())
+                .thenReturn(Optional.empty());
 
-        assertThatExceptionOfType(DomainException.class)
-                .isThrownBy(() -> courierDeliveryService.assignDelivery(deliveryId));
+        assertThatThrownBy(() -> courierDeliveryService.assign(UUID.randomUUID()))
+                .isInstanceOf(NoSuchElementException.class);
+
+        verify(courierRepository, never()).saveAndFlush(any());
     }
 
     @Test
-    void shouldFulfillDeliveryAssignedToCourier() {
+    void shouldFulfillDeliveryOfTheCourierThatHoldsIt() {
+        Courier courier = Courier.brandNew("João da Silva", "11999998888");
         UUID deliveryId = UUID.randomUUID();
-        Courier courier = CourierTestDataBuilder.courierWithPendingDelivery(deliveryId);
+        courier.assign(deliveryId);
+        when(courierRepository.findByPendingDeliveries_id(deliveryId))
+                .thenReturn(Optional.of(courier));
 
-        when(courierRepository.findByPendingDeliveries_id(deliveryId)).thenReturn(Optional.of(courier));
+        courierDeliveryService.fulfill(deliveryId);
 
-        courierDeliveryService.fulfillDelivery(deliveryId);
-
-        assertThat(courier.getFulfilledDeliveriesQuantity()).isEqualTo(1);
         assertThat(courier.getPendingDeliveriesQuantity()).isZero();
-        assertThat(courier.getPendingDeliveries()).isEmpty();
+        assertThat(courier.getFulfilledDeliveriesQuantity()).isEqualTo(1);
+        assertThat(courier.getLastFulfilledDeliveryAt()).isNotNull();
+        verify(courierRepository).saveAndFlush(courier);
     }
 
     @Test
-    void shouldFailWhenFulfillingDeliveryWithoutCourier() {
+    void shouldFailWhenFulfillingDeliveryThatNoCourierHolds() {
         UUID deliveryId = UUID.randomUUID();
-        when(courierRepository.findByPendingDeliveries_id(deliveryId)).thenReturn(Optional.empty());
+        when(courierRepository.findByPendingDeliveries_id(deliveryId))
+                .thenReturn(Optional.empty());
 
-        assertThatExceptionOfType(DomainException.class)
-                .isThrownBy(() -> courierDeliveryService.fulfillDelivery(deliveryId));
+        assertThatThrownBy(() -> courierDeliveryService.fulfill(deliveryId))
+                .isInstanceOf(NoSuchElementException.class);
+
+        verify(courierRepository, never()).saveAndFlush(any());
     }
-
 }

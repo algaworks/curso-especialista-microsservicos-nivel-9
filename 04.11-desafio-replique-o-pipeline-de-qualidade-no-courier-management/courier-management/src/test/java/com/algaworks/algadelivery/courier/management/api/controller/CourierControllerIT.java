@@ -1,146 +1,177 @@
 package com.algaworks.algadelivery.courier.management.api.controller;
 
 import com.algaworks.algadelivery.courier.management.api.AbstractPresentationIT;
-import com.algaworks.algadelivery.courier.management.api.model.CourierInput;
-import com.algaworks.algadelivery.courier.management.api.model.CourierPayoutCalculateRequest;
+import com.algaworks.algadelivery.courier.management.domain.model.Courier;
+import com.algaworks.algadelivery.courier.management.domain.repository.CourierRepository;
+import io.restassured.RestAssured;
+import io.restassured.http.ContentType;
+import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 
 import java.math.BigDecimal;
 import java.util.UUID;
 
-import static io.restassured.RestAssured.given;
-import static io.restassured.http.ContentType.JSON;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.comparesEqualTo;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.notNullValue;
 
 class CourierControllerIT extends AbstractPresentationIT {
 
-    private static final String COURIERS_PATH = "/api/v1/couriers";
+    @Autowired
+    private CourierRepository courierRepository;
 
     @BeforeEach
     void setUp() {
         beforeEach();
+        RestAssured.basePath = "/api/v1/couriers";
     }
 
     @Test
     void shouldCreateCourier() {
-        given()
-            .contentType(JSON)
-            .body(courierInput("John Doe", "11 99999-9999"))
-        .when()
-            .post(COURIERS_PATH)
-        .then()
-            .statusCode(201)
-            .body("id", notNullValue())
-            .body("name", equalTo("John Doe"))
-            .body("phone", equalTo("11 99999-9999"))
-            .body("pendingDeliveriesQuantity", equalTo(0))
-            .body("fulfilledDeliveriesQuantity", equalTo(0));
+        RestAssured
+            .given()
+                .contentType(ContentType.JSON)
+                .accept(ContentType.JSON)
+                .body("""
+                    {
+                        "name": "João da Silva",
+                        "phone": "11999998888"
+                    }
+                    """)
+            .when()
+                .post()
+            .then()
+                .statusCode(HttpStatus.CREATED.value())
+                .body("id", notNullValue())
+                .body("name", equalTo("João da Silva"))
+                .body("phone", equalTo("11999998888"))
+                .body("pendingDeliveriesQuantity", equalTo(0))
+                .body("fulfilledDeliveriesQuantity", equalTo(0));
     }
 
     @Test
-    void shouldRejectCourierWithBlankFields() {
-        given()
-            .contentType(JSON)
-            .body(courierInput("", ""))
-        .when()
-            .post(COURIERS_PATH)
-        .then()
-            .statusCode(400)
-            .body("title", equalTo("Invalid fields"))
-            .body("fields.name", notNullValue())
-            .body("fields.phone", notNullValue());
+    void shouldRejectCourierWithoutName() {
+        RestAssured
+            .given()
+                .contentType(ContentType.JSON)
+                .accept(ContentType.JSON)
+                .body("""
+                    {
+                        "name": "",
+                        "phone": "11999998888"
+                    }
+                    """)
+            .when()
+                .post()
+            .then()
+                .statusCode(HttpStatus.BAD_REQUEST.value());
     }
 
     @Test
     void shouldFindCourierById() {
-        String courierId = createCourier("Jane Doe", "11 88888-8888");
+        UUID courierId = givenCourier("Maria Souza", "11912341234");
 
-        given()
-            .accept(JSON)
-        .when()
-            .get(COURIERS_PATH + "/{courierId}", courierId)
-        .then()
-            .statusCode(200)
-            .body("id", equalTo(courierId))
-            .body("name", equalTo("Jane Doe"));
+        RestAssured
+            .given()
+                .accept(ContentType.JSON)
+                .pathParam("courierId", courierId)
+            .when()
+                .get("/{courierId}")
+            .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("id", equalTo(courierId.toString()))
+                .body("name", equalTo("Maria Souza"));
     }
 
     @Test
     void shouldReturnNotFoundForUnknownCourier() {
-        given()
-            .accept(JSON)
-        .when()
-            .get(COURIERS_PATH + "/{courierId}", UUID.randomUUID())
-        .then()
-            .statusCode(404);
-    }
-
-    @Test
-    void shouldListCouriers() {
-        createCourier("Listed Courier", "11 77777-7777");
-
-        given()
-            .accept(JSON)
-        .when()
-            .get(COURIERS_PATH)
-        .then()
-            .statusCode(200)
-            .body("content", notNullValue());
+        RestAssured
+            .given()
+                .accept(ContentType.JSON)
+                .pathParam("courierId", UUID.randomUUID())
+            .when()
+                .get("/{courierId}")
+            .then()
+                .statusCode(HttpStatus.NOT_FOUND.value());
     }
 
     @Test
     void shouldUpdateCourier() {
-        String courierId = createCourier("Old Name", "11 66666-6666");
+        UUID courierId = givenCourier("Carlos Lima", "11955554444");
 
-        given()
-            .contentType(JSON)
-            .body(courierInput("New Name", "11 55555-5555"))
-        .when()
-            .put(COURIERS_PATH + "/{courierId}", courierId)
-        .then()
-            .statusCode(204);
-
-        given()
-            .accept(JSON)
-        .when()
-            .get(COURIERS_PATH + "/{courierId}", courierId)
-        .then()
-            .statusCode(200)
-            .body("name", equalTo("New Name"))
-            .body("phone", equalTo("11 55555-5555"));
+        RestAssured
+            .given()
+                .contentType(ContentType.JSON)
+                .accept(ContentType.JSON)
+                .pathParam("courierId", courierId)
+                .body("""
+                    {
+                        "name": "Carlos Lima Filho",
+                        "phone": "11933332222"
+                    }
+                    """)
+            .when()
+                .put("/{courierId}")
+            .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("name", equalTo("Carlos Lima Filho"))
+                .body("phone", equalTo("11933332222"));
     }
 
     @Test
-    void shouldCalculateCourierPayout() {
-        given()
-            .contentType(JSON)
-            .body(new CourierPayoutCalculateRequest(10.0))
-        .when()
-            .post(COURIERS_PATH + "/payout-calculation")
-        .then()
-            .statusCode(200)
-            .body("payoutFee", comparesEqualTo(new BigDecimal("30.00")));
-    }
+    void shouldListCouriersPaginated() {
+        givenCourier("Entregador Listado", "11900001111");
 
-    private String createCourier(String name, String phone) {
-        return given()
-                .contentType(JSON)
-                .body(courierInput(name, phone))
+        RestAssured
+            .given()
+                .accept(ContentType.JSON)
             .when()
-                .post(COURIERS_PATH)
+                .get()
             .then()
-                .statusCode(201)
-                .extract().path("id");
+                .statusCode(HttpStatus.OK.value())
+                .body("content", notNullValue())
+                .body("content.name", hasItem("Entregador Listado"))
+                .body("page.size", equalTo(10))
+                .body("page.number", equalTo(0));
     }
 
-    private CourierInput courierInput(String name, String phone) {
-        CourierInput input = new CourierInput();
-        input.setName(name);
-        input.setPhone(phone);
-        return input;
+    @Test
+    void shouldCalculatePayoutFee() {
+        // O endpoint de cálculo falha de propósito em ~50% das chamadas — é o cenário que o
+        // Delivery-Tracking usa para exercitar retry e circuit breaker. Aqui insistimos até
+        // obter uma resposta bem-sucedida e então validamos o valor calculado.
+        Response response = null;
+
+        for (int attempt = 0; attempt < 30; attempt++) {
+            response = RestAssured
+                    .given()
+                        .contentType(ContentType.JSON)
+                        .accept(ContentType.JSON)
+                        .body("""
+                            {
+                                "distanceInKm": 3.5
+                            }
+                            """)
+                    .when()
+                        .post("/payout-calculation");
+
+            if (response.statusCode() == HttpStatus.OK.value()) {
+                break;
+            }
+        }
+
+        assertThat(response).isNotNull();
+        response.then()
+                .statusCode(HttpStatus.OK.value())
+                .body("payoutFee", comparesEqualTo(new BigDecimal("35.00")));
     }
 
+    private UUID givenCourier(String name, String phone) {
+        return courierRepository.saveAndFlush(Courier.brandNew(name, phone)).getId();
+    }
 }

@@ -8,7 +8,8 @@ plugins {
 }
 
 group = 'com.algaworks.algadelivery'
-version = findProperty('version') ?: 'canary'
+def resolvedVersion = findProperty('version')
+version = (resolvedVersion && resolvedVersion != 'unspecified') ? resolvedVersion : 'canary'
 description = 'Courier-Management'
 
 sonar {
@@ -42,12 +43,13 @@ configurations {
     }
     all {
         resolutionStrategy {
-            force 'at.yawk.lz4:lz4-java:1.10.1'
+            // Correcoes de CVE em dependencias transitivas nao gerenciadas pelo BOM
             force 'org.bouncycastle:bcprov-jdk18on:1.84'
+            force 'at.yawk.lz4:lz4-java:1.10.1'
             eachDependency { details ->
                 if (details.requested.group == 'org.lz4' && details.requested.name == 'lz4-java') {
                     details.useTarget 'at.yawk.lz4:lz4-java:1.10.1'
-                    details.because 'Fixing CVE in lz4-java'
+                    details.because 'org.lz4:lz4-java esta abandonado; at.yawk.lz4 e o fork mantido'
                 }
             }
         }
@@ -61,8 +63,9 @@ repositories {
 
 ext {
     set('springCloudVersion', '2025.0.0')
-
-    // Sobrescreve versoes gerenciadas pelo BOM do Spring Boot para corrigir CVEs
+    // Sobrescreve versoes gerenciadas pelo BOM do Spring Boot para corrigir CVEs.
+    // Aqui o resolutionStrategy.force nao funciona: o plugin io.spring.dependency-management
+    // reaplica a versao do BOM depois dele.
     set('postgresql.version', '42.7.12')
     set('httpcore5.version', '5.4.3')
 }
@@ -72,13 +75,11 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    implementation 'org.springframework.kafka:spring-kafka'
-    implementation 'at.yawk.lz4:lz4-java:1.10.1'
-
-    implementation ('org.springframework.cloud:spring-cloud-starter-netflix-eureka-client') {
+    implementation('org.springframework.cloud:spring-cloud-starter-netflix-eureka-client') {
         exclude group: 'com.thoughtworks.xstream', module: 'xstream'
     }
     implementation 'com.thoughtworks.xstream:xstream:1.4.21'
+    implementation 'org.springframework.kafka:spring-kafka'
     implementation 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     implementation 'org.flywaydb:flyway-core'
@@ -87,11 +88,11 @@ dependencies {
     testImplementation 'org.springframework.kafka:spring-kafka-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-testcontainers'
-    testImplementation 'org.testcontainers:testcontainers:1.20.4'
-    testImplementation 'org.testcontainers:junit-jupiter:1.20.4'
-    testImplementation 'org.testcontainers:postgresql:1.20.4'
-    testImplementation 'org.testcontainers:kafka:1.20.4'
-    testImplementation 'io.rest-assured:rest-assured:5.5.0'
+    testImplementation 'org.testcontainers:testcontainers'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:postgresql'
+    testImplementation 'org.testcontainers:kafka'
+    testImplementation 'io.rest-assured:rest-assured:5.5.5'
 }
 
 dependencyManagement {
@@ -100,13 +101,13 @@ dependencyManagement {
     }
 }
 
-bootJar {
-    archiveBaseName = 'courier-management'
-    archiveVersion = "${version}"
-}
-
 tasks.named('test') {
     useJUnitPlatform()
+    // Permite forcar a versao da API do Docker usada pelo Testcontainers quando o daemon
+    // local recusa a versao negociada por padrao. Sem a env definida, nada muda.
+    if (System.getenv('DOCKER_API_VERSION')) {
+        systemProperty 'api.version', System.getenv('DOCKER_API_VERSION')
+    }
     finalizedBy jacocoTestReport
 }
 
@@ -162,4 +163,9 @@ jacocoTestCoverageVerification {
             })
         )
     }
+}
+
+bootJar {
+    archiveBaseName = 'courier-management'
+    archiveVersion = "${version}"
 }

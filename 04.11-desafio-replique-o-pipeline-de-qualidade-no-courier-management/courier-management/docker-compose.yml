@@ -1,0 +1,53 @@
+services:
+
+  postgres:
+    extends:
+      file: ../docker-compose.yml
+      service: postgres
+    environment:
+      POSTGRES_DB: courierdb
+    ports:
+      - "5432:5432"
+    networks:
+      - courier-network
+
+  kafka:
+    extends:
+      file: ../docker-compose.yml
+      service: kafka
+    ports:
+      - "9092:9092"
+    networks:
+      - courier-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+      - kafka
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/courierdb
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SERVER_PORT: 8081
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8081/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    ports:
+      - "8081:8081"
+    networks:
+      - courier-network
+
+networks:
+  courier-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  kafka-data:
